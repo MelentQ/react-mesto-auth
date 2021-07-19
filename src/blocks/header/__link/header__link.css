@@ -1,0 +1,26 @@
+.header__link {
+  align-self: flex-start;
+
+  padding: 0;
+  margin: 0;
+
+  font-size: 18px;
+  line-height: 1.22;
+  font-weight: 400;
+
+  text-decoration: none;
+  color: #A9A9A9;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+  background: none;
+  border: none;
+}
+
+.header__link:hover {
+  opacity: 0.8;
+}
+
+.header__link:focus {
+  outline: none;
+  opacity: 0.8;
+}

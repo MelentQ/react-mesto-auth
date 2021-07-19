@@ -1,0 +1,8 @@
+.section_place_auth {
+  display: flex;
+  flex-direction: column;
+
+  padding-top: 60px;
+  padding-bottom: 80px;
+  max-width: 358px;
+}

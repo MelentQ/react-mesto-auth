@@ -1,0 +1,7 @@
+.popup__container_place_info-popup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding: 60px 36px;
+}

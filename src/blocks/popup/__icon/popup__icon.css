@@ -1,0 +1,9 @@
+.popup__icon {
+  display: block;
+
+  margin-bottom: 32px;
+  width: 120px;
+  height: 120px;
+
+  align-self: center;
+}

@@ -1,4 +1,5 @@
 import React from 'react';
+import {Route, Switch, Redirect, useHistory} from 'react-router-dom';
 import Header from './Header';
 import Main from './Main';
 import Footer from './Footer';
@@ -9,17 +10,29 @@ import {CurrentUserContext} from '../contexts/CurrentUserContext';
 import EditProfilePopup from "./EditProfilePopup";
 import EditAvatarPopup from "./EditAvatarPopup";
 import AddPlacePopup from "./AddPlacePopup";
+import Login from "./Login";
+import Register from "./Register";
+import InfoTooltip from './InfoTooltip';
+import ProtectedRoute from "./ProtectedRoute";
+import {register, login, checkToken} from "../utils/auth"
 
 function App() {
 
   const [isEditProfilePopupOpen, setIsEditProfilePopupOpen] = React.useState(false);
   const [isAddPlacePopupOpen, setIsAddPlacePopupOpen] = React.useState(false);
   const [isEditAvatarPopupOpen, setIsEditAvatarPopupOpen] = React.useState(false);
+  const [isInfoPopupOpen, setIsInfoPopupOpen] = React.useState(false);
+  const [isInfoTooltipError, setIsInfoTooltipError] = React.useState(false);
 
   const [selectedCard, setSelectedCard] = React.useState({});
 
   const [currentUser, setCurrentUser] = React.useState({});
   const [cards, setCards] = React.useState([]);
+
+  const [loggedIn, setLoggedIn] = React.useState(false);
+  const [userEmail, setUserEmail] = React.useState('');
+
+  let history = useHistory();
 
   React.useEffect(() => {
     Promise.all([api.getUserData(), api.getCards()])
@@ -65,6 +78,7 @@ function App() {
     setIsEditProfilePopupOpen(false);
     setIsAddPlacePopupOpen(false);
     setIsEditAvatarPopupOpen(false);
+    setIsInfoPopupOpen(false);
     setSelectedCard({});
   }
 
@@ -99,20 +113,126 @@ function App() {
       .catch(err => console.log(`Ошибка при добавлении карточки: ${err.status}`))
   }
 
+  // Обработчик для регистрации
+  function handleRegister(email, password) {
+    register(email, password)
+      .then(res => {
+        // Информируем об успешном создании в infoPopup
+        setIsInfoTooltipError(false);
+        // Перенаправляем на страницу входа
+        history.push("/sign-in");
+      })
+      .catch(err => {
+        // Здесь задаем ошибку в infoPopup
+        setIsInfoTooltipError(true);
+        console.log(err);
+      })
+      .finally(() => {
+        // Здесь открываем infoPopup
+        setIsInfoPopupOpen(true);
+      })
+  }
+
+  // Обработчик для авторизации
+  function handleLogin(email, password) {
+    login(email, password)
+      .then(res => {
+        // Если ответ успешный, то забираем токен
+        localStorage.setItem('jwt', res.token);
+        // Устанавливаем значение loggedIn на True
+        setLoggedIn(true);
+        // Сохраняем Email пользователя
+        setUserEmail(email);
+        // Перенаправляем в Main
+        history.push('/');
+      })
+      .catch(err => {
+        // Открываем infoPopup и уведомляем, что что-то пошло не так
+        setIsInfoTooltipError(true);
+        setIsInfoPopupOpen(true);
+        console.log(err);
+      })
+  }
+
+  // Обработчик для выхода из аккаунта
+  function handleLogout() {
+    // Удаляем токен
+    localStorage.removeItem('jwt');
+    // Устанавливаем значение loggedIn на False
+    setLoggedIn(false);
+    // Сбрасываем Email пользователя
+    setUserEmail('');
+    // Перенаправляем на страницу входа
+    history.push("/sign-in");
+  }
+
+  // Поиск токена в локальном хранилище
+  React.useEffect(() => {
+    const jwt = localStorage.getItem('jwt');
+
+    // Если токен есть, то проверяем его на сервере
+    if (jwt) {
+      checkToken(localStorage.getItem('jwt'))
+        .then(res => {
+          // Устанавливаем значение loggedIn на True
+          setLoggedIn(true);
+          // Сохраняем Email пользователя
+          setUserEmail(res.data.email);
+          // Перенаправляем в Main
+          history.push('/');
+        })
+        .catch((err) => {
+          // В случае ошибки перенаправляем на страницу входа
+          // На всякий случай сбрасываем данные пользователя
+          history.push('/sign-in');
+          setLoggedIn(false);
+          setUserEmail('');
+
+          console.log(err)
+        })
+    }
+  }, [])
+
   return (
     <div className="page">
       <CurrentUserContext.Provider value={currentUser}>
-        <Header />
-
-        <Main
-          onEditProfile={handleEditProfileClick}
-          onEditAvatar={handleEditAvatarClick}
-          onAddPlace={handleAddPlaceClick}
-          onCardClick={handleCardClick}
-          cards={cards}
-          handleCardDelete={handleCardDelete}
-          handleCardLike={handleCardLike}
+        <Header
+          loggedIn={loggedIn}
+          userEmail={userEmail}
+          onSignOut={handleLogout}
         />
+
+        <Switch>
+          <ProtectedRoute
+            component={Main}
+            exact path="/"
+            loggedIn={loggedIn}
+
+            onEditProfile={handleEditProfileClick}
+            onEditAvatar={handleEditAvatarClick}
+            onAddPlace={handleAddPlaceClick}
+            onCardClick={handleCardClick}
+            cards={cards}
+            handleCardDelete={handleCardDelete}
+            handleCardLike={handleCardLike}
+          />
+
+          <Route path="/sign-in">
+            <Login
+              onLogin={handleLogin}
+            />
+          </Route>
+
+          <Route path="/sign-up">
+            <Register
+              onRegister={handleRegister}
+            />
+          </Route>
+
+          <Route exact path="*">
+            <Redirect to="/sign-in" />
+          </Route>
+        </Switch>
 
         <Footer />
 
@@ -122,14 +242,32 @@ function App() {
           title={'Вы уверены?'}
         />
 
-        <EditProfilePopup onUpdateUser={handleUpdateUser} onClose={closeAllPopups} isOpen={isEditProfilePopupOpen}/>
+        <EditProfilePopup
+          onUpdateUser={handleUpdateUser}
+          onClose={closeAllPopups}
+          isOpen={isEditProfilePopupOpen}
+        />
 
-        <EditAvatarPopup onUpdateAvatar={handleUpdateAvatar} onClose={closeAllPopups} isOpen={isEditAvatarPopupOpen}/>
+        <EditAvatarPopup
+          onUpdateAvatar={handleUpdateAvatar}
+          onClose={closeAllPopups}
+          isOpen={isEditAvatarPopupOpen}
+        />
 
-        <AddPlacePopup onAddPlace={handleAddPlaceSubmit} onClose={closeAllPopups} isOpen={isAddPlacePopupOpen}/>
+        <AddPlacePopup
+          onAddPlace={handleAddPlaceSubmit}
+          onClose={closeAllPopups}
+          isOpen={isAddPlacePopupOpen}
+        />
 
         <ImagePopup
           card={selectedCard}
+          onClose={closeAllPopups}
+        />
+
+        <InfoTooltip
+          isOpen={isInfoPopupOpen}
+          isError={isInfoTooltipError}
           onClose={closeAllPopups}
         />
 
