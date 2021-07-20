@@ -21,6 +21,10 @@ function AddPlacePopup({onClose, isOpen, onAddPlace}) {
       name: cardName,
       link: cardLink
     })
+
+    // Сбрасываем поля
+    setCardName('');
+    setCardLink('');
   }
 
   return (

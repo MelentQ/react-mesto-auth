@@ -194,7 +194,7 @@ function App() {
   }, [])
 
   return (
-    <div className="page">
+    <>
       <CurrentUserContext.Provider value={currentUser}>
         <Header
           loggedIn={loggedIn}
@@ -272,7 +272,7 @@ function App() {
         />
 
       </CurrentUserContext.Provider>
-    </div>
+    </>
   );
 }
 

@@ -11,6 +11,9 @@ function EditAvatarPopup({onClose, isOpen, onUpdateAvatar}) {
     onUpdateAvatar({
       avatar: avatarLinkRef.current.value
     });
+
+    // Сбрасываем поля
+    avatarLinkRef.current.value = '';
   }
 
   return (
